@@ -33,18 +33,42 @@
                                     <option value="REAL_TIME_JOB">实时任务</option>
                                     <option value="TRIGGER_TIME_JOB">定时任务</option>
                                     <option value="CRON_JOB">Cron任务</option>
+                                    <option value="REPEAT_JOB">Repeat任务</option>
                                 </select>
                             </div>
-                            <div class="col-sm-3" id="cronJob" style="display:none;">
+                            <div class="col-sm-3 lts-cron-job-group" style="display:none;">
                                 <input type="text" class="form-control" name="cronExpression"
                                        placeholder="请输入CronExpression">
                             </div>
-                            <div class="col-sm-3" id="triggerTimeJob" style="display:none;">
+                            <div class="col-sm-3 lts-cron-job-group" style="display:none;">
+                                <button class="btn btn-primary" type="button" id="cronGeneratorBtn">
+                                    工具生成
+                                </button>
+                            </div>
+                            <div class="col-sm-2 lts-repeat-job-group lts-trigger-job-group" style="display:none;">
                                 <input class="form-control datepicker" type="text" style="width:160px"
                                        id="triggerTime"
                                        name="triggerTime"
                                        date-format="yyyy-MM-dd HH:mm:ss"
                                        placeholder="请输入触发时间"/>
+                            </div>
+                            <div class="col-sm-2 lts-repeat-job-group" style="display:none;">
+                                <input type="text" class="form-control" name="repeatInterval"
+                                       placeholder="请输入触发时间间隔"/>
+                            </div>
+                            <div class="col-sm-2 lts-repeat-job-group" style="display:none;">
+                                <input type="text" class="form-control" name="repeatCount"
+                                       placeholder="请输入重复次数"/>
+                            </div>
+                        </div>
+                        <div class="form-group lts-repeat-job-group lts-cron-job-group" style="display: none;">
+                            <label class="col-sm-2 control-label">依赖上一周期</label>
+
+                            <div class="col-sm-3">
+                                <select name="relyOnPrevCycle" class="form-control">
+                                    <option value="true" selected>是</option>
+                                    <option value="false">否</option>
+                                </select>
                             </div>
                         </div>
                         <div class="form-group">
@@ -63,6 +87,14 @@
                             <div class="col-sm-3">
                                 <input type="text" class="form-control" name="priority" value="100"
                                        placeholder="必须为数字，数值越小，优先级越大【必填】">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label class="col-sm-2 control-label">最大重试次数</label>
+
+                            <div class="col-sm-3">
+                                <input type="text" class="form-control" name="maxRetryTimes" value="0"
+                                       placeholder="最大重试次数, 必须为非负数【必填】">
                             </div>
                         </div>
                         <div class="form-group">
@@ -124,14 +156,21 @@
         $(document).on("change", "select[name='jobType']", function () {
             var jobType = $(this).val();
             if (jobType == 'REAL_TIME_JOB') {
-                $("#cronJob").hide();
-                $("#triggerTimeJob").hide();
+                $(".lts-cron-job-group").hide();
+                $(".lts-trigger-job-group").hide();
+                $(".lts-repeat-job-group").hide();
             } else if (jobType == 'TRIGGER_TIME_JOB') {
-                $("#cronJob").hide();
-                $("#triggerTimeJob").show();
+                $(".lts-cron-job-group").hide();
+                $(".lts-repeat-job-group").hide();
+                $(".lts-trigger-job-group").show();
             } else if (jobType == 'CRON_JOB') {
-                $("#cronJob").show();
-                $("#triggerTimeJob").hide();
+                $(".lts-trigger-job-group").hide();
+                $(".lts-repeat-job-group").hide();
+                $(".lts-cron-job-group").show();
+            } else if (jobType == 'REPEAT_JOB') {
+                $(".lts-cron-job-group").hide();
+                $(".lts-trigger-job-group").hide();
+                $(".lts-repeat-job-group").show();
             }
         });
 
@@ -139,12 +178,11 @@
             var params = {};
             $.each($('#form').parent().find(".form-control"), function () {
                 var name = $(this).attr("name");
-                var value = $(this).val();
+                var value = $(this).val().trim();
                 params[name] = value;
             });
 
             var jobType = params['jobType'];
-            params['jobType'] = '';
             if (jobType == 'REAL_TIME_JOB') {
                 params['cronExpression'] = '';
                 params['triggerTime'] = '';
@@ -162,7 +200,28 @@
                     sweetAlert("请输入Cron表达式", "", "error");
                     return;
                 }
+            } else if (jobType == 'REPEAT_JOB') {
+                var repeatInterval = params['repeatInterval'];
+                if (!repeatInterval) {
+                    sweetAlert("请输入重复时间间隔", "必须为数字，毫秒数", "error");
+                    return;
+                }
+                if (!LTS.ReExp.number.test(repeatInterval)) {
+                    sweetAlert("重复时间间隔", "必须为数字，毫秒数", "error");
+                    return;
+                }
+                var repeatCount = params['repeatCount'];
+                if (!repeatCount) {
+                    sweetAlert("请输入重复次数", "-1表示无限重复, 必须大于等于 -1", "error");
+                    return;
+                }
+                if (repeatCount != -1 && !/^\d+$/.test(repeatCount)) {
+                    sweetAlert("重复次数格式错误", "-1表示无限重复, 必须大于等于 -1", "error");
+                    return;
+                }
             }
+
+            debugger;
 
             // check form
             if (!params['taskId']) {
@@ -178,12 +237,16 @@
                 sweetAlert("优先级格式错误", "必须为数字，数值越小，优先级越大【必填】", "error");
                 return;
             }
-            if (!params['submitNodeGroup']) {
-                sweetAlert("请选择提交节点组", "如果列表中没有，请在节点组管理中添加，并启动改节点。", "error");
+            if (!params['submitNodeGroup'] && params['needFeedback'] == 'true') {
+                sweetAlert("请选择提交节点组", "需要反馈客户端必须选择提交节点组,如果列表中没有，请在节点组管理中添加，并启动改节点。", "error");
                 return;
             }
             if (!params['taskTrackerNodeGroup']) {
                 sweetAlert("请选择执行节点组", "如果列表中没有，请在节点组管理中添加，并启动改节点。", "error");
+                return;
+            }
+            if (!params['maxRetryTimes'] || !/^\d+$/.test(params['maxRetryTimes'])) {
+                sweetAlert("最大重试次数必须为非负整数", "最大重试次数必须为非负整数", "error");
                 return;
             }
 
@@ -206,8 +269,9 @@
                     if (json && json.success) {
                         swal('添加成功');
                         $("#resetBtn").trigger("click");
-                        $("#cronJob").hide();
-                        $("#triggerTimeJob").hide();
+                        $(".lts-cron-job-group").hide();
+                        $(".lts-trigger-job-group").hide();
+                        $(".lts-repeat-job-group").hide();
                     } else {
                         if (json) {
                             swal(json['msg']);
@@ -217,5 +281,41 @@
 
             });
         });
+
+        $(document).on("click", "#cronGeneratorBtn", function () {
+            var cron = $("input[name='cronExpression']").val().trim();
+            if (isCronExpress(cron)) {
+                $(window.frames["cronGeneratorIframe"]).contents().find("#cron").val(cron);
+                $(window.frames["cronGeneratorIframe"]).contents().find("#btnFan").click();
+            }
+            $("#cronGeneratorDialog").modal("show");
+        });
+
+        $('body').bind('Event_CronExpression_Generated', function (event, data) {
+            $("input[name='cronExpression']").val(data['cron'].trim());
+            $("#cronGeneratorDialog").modal("hide");
+        });
     });
 </script>
+<script src="assets/js/cronValidate.js" type="text/javascript"></script>
+
+
+<div class="modal inmodal" id="cronGeneratorDialog" role="dialog" aria-hidden="true" style="display: none;">
+    <div class="modal-dialog" style="width: 600px;">
+        <div class="modal-content animated rubberBand">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">×</span><span
+                        class="sr-only">关闭</span></button>
+                <h2 class="modal-title">Cron表达式生成工具</h2>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <iframe id="cronGeneratorIframe" src="cron_generator_iframe.htm" width="540" height="450"
+                            style="border:0px;"
+                            scrolling="no"></iframe>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+

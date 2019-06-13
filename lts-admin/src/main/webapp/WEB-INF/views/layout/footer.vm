@@ -1,5 +1,5 @@
 <div class="footer">
-    <div>Copyright © 2014 - 2015 <strong>LTS</strong>. All Rights Reserved</div>
+    <div>Copyright © 2014 - 2016 <strong>LTS</strong>. All Rights Reserved</div>
 </div>
 
 <!-- Custom and plugin javascript -->
@@ -45,21 +45,22 @@
 </script>
 
 <!-- Mainly scripts -->
-<script src="assets/js/plugins/metisMenu/metisMenu.min.js"></script>
-<script src="assets/js/plugins/slimscroll/jquery.slimscroll.min.js"></script>
+<script src="${contextPath}/assets/js/plugins/metisMenu/metisMenu.min.js"></script>
+<script src="${contextPath}/assets/js/plugins/slimscroll/jquery.slimscroll.min.js"></script>
 
-<script src="assets/js/inspinia.js"></script>
+<script src="${contextPath}/assets/js/inspinia.js"></script>
 ##<script src="assets/js/plugins/pace/pace.min.js"></script>
-<script src="assets/js/plugins/sweetalert/sweetalert.min.js"></script>
+<script src="${contextPath}/assets/js/plugins/sweetalert/sweetalert.min.js"></script>
 
 <!-- FooTable -->
-<script src="assets/js/plugins/footable/footable.all.min.js"></script>
-<script src="assets/js/plugins/pagination/jquery.twbsPagination.min.js"></script>
+<script src="${contextPath}/assets/js/plugins/footable/footable.all.min.js"></script>
+<script src="${contextPath}/assets/js/plugins/pagination/jquery.twbsPagination.min.js"></script>
 <!-- JS Template -->
-<script src="assets/js/plugins/artTemplate/template.js"></script>
-<script src="assets/js/plugins/datepicker/WdatePicker.js"></script>
+<script src="${contextPath}/assets/js/plugins/artTemplate/template.js"></script>
+<script src="${contextPath}/assets/js/plugins/datepicker/WdatePicker.js"></script>
 <!-- Autocomplete -->
-<script src="assets/js/plugins/typeahead/bootstrap3-typeahead.min.js"></script>
+<script src="${contextPath}/assets/js/plugins/typeahead/bootstrap3-typeahead.min.js"></script>
 
-<script src="assets/js/plugins/select/bootstrap-select.min.js"></script>
-<script src="assets/js/lts.js"></script>
+<script src="${contextPath}/assets/js/plugins/select/bootstrap-select.min.js"></script>
+<script src="${contextPath}/assets/js/plugins/highcharts/highcharts-4.1.8.js"></script>
+<script src="${contextPath}/assets/js/lts.js"></script>

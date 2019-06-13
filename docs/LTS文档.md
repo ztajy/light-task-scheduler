@@ -4,7 +4,7 @@ LTS(light-task-scheduler)主要用于解决分布式任务调度问题，支持�
 
 ## 项目地址
 github地址:
-[https://github.com/qq254963746/light-task-scheduler](https://github.com/qq254963746/light-task-scheduler)
+[https://github.com/ltsopensource/light-task-scheduler](https://github.com/ltsopensource/light-task-scheduler)
 
 oschina地址:
 [http://git.oschina.net/hugui/light-task-scheduler](http://git.oschina.net/hugui/light-task-scheduler)
@@ -148,17 +148,17 @@ Response response = jobClient.submitJob(job);
     
 ###Spring XML方式启动
 ```java
-<bean id="jobClient" class="com.lts.spring.JobClientFactoryBean">
+<bean id="jobClient" class="com.github.ltsopensource.spring.JobClientFactoryBean">
     <property name="clusterName" value="test_cluster"/>
     <property name="registryAddress" value="zookeeper://127.0.0.1:2181"/>
     <property name="nodeGroup" value="test_jobClient"/>
     <property name="masterChangeListeners">
         <list>
-            <bean class="com.lts.example.support.MasterChangeListenerImpl"/>
+            <bean class="com.github.ltsopensource.example.support.MasterChangeListenerImpl"/>
         </list>
     </property>
     <property name="jobFinishedHandler">
-        <bean class="com.lts.example.support.JobFinishedHandlerImpl"/>
+        <bean class="com.github.ltsopensource.example.support.JobFinishedHandlerImpl"/>
     </property>
     <property name="configs">
         <props>
@@ -195,10 +195,10 @@ public class LTSSpringConfig {
 ###定义自己的任务执行类
 ```java
 public class MyJobRunner implements JobRunner {
-    private final static BizLogger bizLogger = LtsLoggerFactory.getBizLogger();
     @Override
-    public Result run(Job job) throws Throwable {
+    public Result run(JobContext jobContext) throws Throwable {
         try {
+            BizLogger bizLogger = jobContext.getBizLogger();
             // TODO 业务逻辑
             // 会发送到 LTS (JobTracker上)
             bizLogger.info("测试，业务日志啊啊啊啊啊");
@@ -221,8 +221,8 @@ taskTracker.start();
 ```
 ###Spring XML方式启动
 ```java
-<bean id="taskTracker" class="com.lts.spring.TaskTrackerAnnotationFactoryBean" init-method="start">
-    <property name="jobRunnerClass" value="com.lts.example.support.MyJobRunner"/>
+<bean id="taskTracker" class="com.github.ltsopensource.spring.TaskTrackerAnnotationFactoryBean" init-method="start">
+    <property name="jobRunnerClass" value="com.github.ltsopensource.example.support.MyJobRunner"/>
     <property name="bizLoggerLevel" value="INFO"/>
     <property name="clusterName" value="test_cluster"/>
     <property name="registryAddress" value="zookeeper://127.0.0.1:2181"/>
@@ -230,7 +230,7 @@ taskTracker.start();
     <property name="workThreads" value="20"/>
     <property name="masterChangeListeners">
         <list>
-            <bean class="com.lts.example.support.MasterChangeListenerImpl"/>
+            <bean class="com.github.ltsopensource.example.support.MasterChangeListenerImpl"/>
         </list>
     </property>
     <property name="configs">
@@ -289,7 +289,6 @@ public class LTSSpringConfig implements ApplicationContextAware {
 |zk.client|可选|zkclient|JobClient,JobTracker,TaskTracker|addConfig("zk.client", "xxx")|zookeeper客户端,可选值zkclient, curator|
 |job.pull.frequency|可选|3|TaskTracker|addConfig("job.pull.frequency", "xx")|TaskTracker去向JobTracker Pull任务的频率，针对不同的场景可以做相应的调整，单位秒|
 |job.max.retry.times|可选|10|JobTracker|addConfig("job.max.retry.times", "xx")|任务的最大重试次数|
-|lts.monitor.url|可选|无|JobTracker,TaskTracker|addConfig("lts.monitor.url", "xx")|监控中心地址，也就是LTS-Admin地址，如 http://localhost:8081|
 |stop.working|可选|false|TaskTracker|addConfig("stop.working", "true")|主要用于当TaskTracker与JobTracker出现网络隔离的时候，超过一定时间隔离之后，TaskTracker自动停止当前正在运行的任务|
 
 
@@ -339,9 +338,9 @@ class JobRunnerB implements JobRunner {
 ```
 ##SPI扩展说明
 ###LTS-Logger扩展
-1. 引入`lts-logger-api-{version}.jar`
+1. 引入`lts-core-{version}.jar`
 2. 实现`JobLogger`和`JobLoggerFactory`接口
-3. 在 resources `META-INF/lts/com.lts.biz.logger.JobLoggerFactory`文件,文件内容为`xxx=com.lts.biz.logger.xxx.XxxJobLoggerFactory`
+3. 在 resources `META-INF/lts/com.github.ltsopensource.biz.logger.JobLoggerFactory`文件,文件内容为`xxx=com.github.ltsopensource.biz.logger.xxx.XxxJobLoggerFactory`
 4. 使用自己的logger扩展，修改jobtracker参数配置 configs.job.logger=xxx。（如果你自己引入JobTracker jar包的方式的话，使用 `jobtracker.addConfig("job.logger", "xxx"))`
 
 ###LTS-Queue扩展

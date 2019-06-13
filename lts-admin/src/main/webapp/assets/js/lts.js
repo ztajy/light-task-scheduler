@@ -25,9 +25,55 @@ LTS.colFormatter.needFeedbackLabel = function (v) {
     return v ? "需要" : "不需要";
 };
 
+LTS.colFormatter.jobTypeFormat = function (v) {
+    if (v == 'CRON') {
+        return "Cron任务";
+    } else if (v == "REPEAT") {
+        return "Repeat任务";
+    } else if (v == 'REAL_TIME') {
+        return "实时任务";
+    } else if (v == 'TRIGGER_TIME') {
+        return "定时任务";
+    }
+    return v;
+};
+
+LTS.colFormatter.formatRelyOnPrevCycle = function (v) {
+    return v ? "依赖" : "不依赖";
+};
+
+LTS.colFormatter.formatGroup = function (v, row) {
+    if (row.nodeType == 'JOB_CLIENT' || row.nodeType == 'TASK_TRACKER') {
+        return v;
+    } else {
+        return "";
+    }
+};
+
+LTS.colFormatter.formatRetryTimes = function (v, row) {
+    return row['retryTimes'] + "/" + row['maxRetryTimes'];
+};
+
+LTS.colFormatter.repeatIntervalFormat = function (v, row) {
+    if (!row['repeatInterval']) {
+        return "";
+    }
+    return row['repeatInterval'] + "ms";
+};
+
+LTS.colFormatter.repeatCountFormat = function (v, row) {
+    if (!row['repeatInterval']) {
+        return "";
+    }
+    if (row['repeatCount'] == -1) {
+        return row['repeatedCount'] + '/(无限)';
+    }
+    return row['repeatedCount'] + '/' + (row['repeatCount'])
+};
+
 template.defaults.escape = false; // 关闭转移功能
 template.helper('dateFormat', function (date, format) {
-    if(!date){
+    if (!date) {
         return "";
     }
     return DateUtil.format(date, format);
@@ -88,7 +134,7 @@ function LtsTable(options) {
         _this.showLoading();
         $.ajax({
             url: _this.url,
-            type: 'GET',
+            type: 'POST',
             dataType: 'json',
             data: params,
             success: function (json) {
@@ -136,7 +182,7 @@ jQuery.fn.extend({
 });
 
 
-if(window.Highcharts){
+if (window.Highcharts) {
     Highcharts.setOptions({
         global: {
             useUTC: false
@@ -158,10 +204,15 @@ if(window.Highcharts){
     });
 }
 
-function showLineChart(chartId, title, yTitle, series, colors) {
+function showLineChart(chartId, title, yTitle, series, colors, valueSuffix) {
+    if (!colors) {
+        colors = ['#FCAF64', '#1bd0dc', '#f9b700', '#eb6100', '#eb6877', '#a98fc2', '#9dd30d', '#1c95bd', '#9999ff', '#5674b9', '#009944'];
+    }
+
     $(chartId).highcharts({
         chart: {
-            zoomType: 'x'
+            zoomType: 'x',
+            type: 'spline'
         },
         colors: colors,
         title: {
@@ -182,9 +233,12 @@ function showLineChart(chartId, title, yTitle, series, colors) {
             }]
         },
         tooltip: {
+            valueSuffix: valueSuffix || '',
             dateTimeLabelFormats: {
-                minute:"%Y-%m-%d %H:%M"
-            }
+                minute: "%Y-%m-%d %H:%M"
+            },
+            crosshairs: true,
+            shared: true
         },
         plotOptions: {
             series: {
